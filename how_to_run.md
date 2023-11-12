@@ -27,7 +27,7 @@ c. edit `.env` file and change `MONGO_URL` to the url provided by mongodb atlas
 ```json
 {
   "mappings": {
-    "fields": {embeddings
+    "fields": {
       "embedding": [
         {
           "dimensions": 1536,
