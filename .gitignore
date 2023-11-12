@@ -40,3 +40,7 @@ next-env.d.ts
 /Notion_DB
 
 .yarn/
+
+package-lock.json
+
+docs/
