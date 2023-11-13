@@ -50,11 +50,11 @@ RUN npm install --only=production
 
 COPY --from=builder /app/node_modules/langchain/dist/util/azure.js ./node_modules/langchain/dist/util/
 
-# 你的应用在容器中监听的端口
-EXPOSE 3000
+RUN echo "SET PORT=\$PORT && npm start" > run.sh
+RUN chmod +x run.sh
 
 # 定义环境变量
 ENV NODE_ENV=production
 
 # 启动Next.js应用
-CMD ["npm", "start"]
+CMD ["./run.sh"]
