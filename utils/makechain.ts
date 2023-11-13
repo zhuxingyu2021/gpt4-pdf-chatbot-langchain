@@ -20,7 +20,7 @@ If the question is not related to the context, politely respond that you are tun
 Question: {question}
 Helpful answer in markdown:`;
 
-const MODEL_NAME = 'gpt-4'
+const MODEL_NAME = process.env.MODEL_NAME??'gpt-3.5-turbo'
 
 export const makeChainPipecone = (vectorstore: PineconeStore) => {
   const model = new ChatOpenAI({
