@@ -49,6 +49,7 @@ COPY --from=builder /app/package*.json ./
 RUN npm install --only=production
 
 COPY --from=builder /app/node_modules/langchain/dist/util/azure.js ./node_modules/langchain/dist/util/
+COPY --from=builder /app/prod-server.cjs ./
 
 # 定义环境变量
 ENV NODE_ENV=production
