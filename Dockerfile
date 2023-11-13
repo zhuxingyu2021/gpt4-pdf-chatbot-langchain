@@ -17,7 +17,20 @@ RUN cp scripts/azure.js node_modules/langchain/dist/util/azure.js
 # 构建应用
 RUN npm run build
 
-# 阶段2: 运行环境
+
+FROM node:18-alpine AS ingest
+
+# 设置工作目录
+WORKDIR /app
+
+COPY --from=builder /app ./
+
+ENV NODE_ENV=production
+
+CMD [ "npm", "run", "ingest" ]
+
+
+# 阶段3: 运行环境
 FROM node:18-alpine
 
 # 设置工作目录
