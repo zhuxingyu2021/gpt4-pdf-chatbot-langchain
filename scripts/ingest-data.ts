@@ -13,7 +13,7 @@ import { DATABASE_TYPE } from '@/config/common';
 import { mongoCli } from '@/utils/mongo-client';
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Readable } from 'stream';
-
+import { Document } from 'langchain/document';
 
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID??''
 const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY??''
@@ -82,7 +82,21 @@ export const run = async () => {
   try {
     const s3Keys = await listPdfFiles(AWS_BUCKET);
     const s3Objs = await Promise.all(s3Keys.map(key => downloadPdfFile(AWS_BUCKET, key)));
-    const rawDocs = (await Promise.all(s3Objs.map(obj => new PDFLoader(obj).load()))).flat();
+    const rawDocsPerKey = await Promise.all(s3Objs.map(obj => new PDFLoader(obj).load()));
+    
+    let rawDocs: Document<Record<string, any>>[] = []
+    for (let index = 0; index < s3Keys.length; index++) {
+      const key = s3Keys[index];
+      const doc = rawDocsPerKey[index].map(doc => {
+          let metadata2 = doc.metadata;
+          metadata2["source"] = key;
+          return new Document({
+            pageContent: doc.pageContent,
+            metadata: metadata2
+          })
+      });
+      rawDocs.push(... doc)
+    }
 
     /* Split text into chunks */
     const textSplitter = new RecursiveCharacterTextSplitter({
