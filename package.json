@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node prod-server.cjs",
     "type-check": "tsc --noEmit",
     "lint": "eslint --ignore-path .gitignore \"**/*.+(ts|js|tsx)\"",
     "format": "prettier --ignore-path .gitignore \"**/*.+(ts|js|tsx)\" --write",
@@ -20,7 +20,7 @@
     "@pinecone-database/pinecone": "0.0.14",
     "@radix-ui/react-accordion": "^1.1.1",
     "clsx": "^1.2.1",
-    "dotenv": "^16.0.3",
+    "dotenv": "^16.3.1",
     "langchain": "^0.0.125",
     "lucide-react": "^0.125.0",
     "mongodb": "^5.9.1",
