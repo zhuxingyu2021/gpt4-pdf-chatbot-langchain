@@ -35,6 +35,8 @@ COPY --from=builder /app/package*.json ./
 # 安装生产依赖
 RUN npm install --only=production
 
+COPY --from=builder /app/node_modules/langchain/dist/util/azure.js ./node_modules/langchain/dist/util/
+
 # 你的应用在容器中监听的端口
 EXPOSE 3000
 
