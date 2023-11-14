@@ -3,6 +3,7 @@ import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { RedisVectorStore } from 'langchain/vectorstores/redis';
 import { MongoDBAtlasVectorSearch } from 'langchain/vectorstores/mongodb_atlas';
 import { ConversationalRetrievalQAChain } from 'langchain/chains';
+import { Chroma } from 'langchain/vectorstores/chroma';
 
 const CONDENSE_TEMPLATE = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
 
@@ -22,7 +23,7 @@ Helpful answer in markdown:`;
 
 const MODEL_NAME = process.env.MODEL_NAME??'gpt-3.5-turbo'
 
-export const makeChainPipecone = (vectorstore: PineconeStore) => {
+export const makeChain = (vectorStore: PineconeStore | RedisVectorStore | MongoDBAtlasVectorSearch | Chroma) => {
   const model = new ChatOpenAI({
     temperature: 0, // increase temepreature to get more creative answers
     modelName: MODEL_NAME, //change this to gpt-4 if you have access
@@ -30,7 +31,7 @@ export const makeChainPipecone = (vectorstore: PineconeStore) => {
 
   const chain = ConversationalRetrievalQAChain.fromLLM(
     model,
-    vectorstore.asRetriever(),
+    vectorStore.asRetriever(),
     {
       qaTemplate: QA_TEMPLATE,
       questionGeneratorTemplate: CONDENSE_TEMPLATE,
@@ -38,41 +39,4 @@ export const makeChainPipecone = (vectorstore: PineconeStore) => {
     },
   );
   return chain;
-};
-
-export const makeChainRedis = (vectorstore: RedisVectorStore) => {
-  const model = new ChatOpenAI({
-    temperature: 0, // increase temepreature to get more creative answers
-    modelName: MODEL_NAME, //change this to gpt-4 if you have access
-  });
-
-  const chain = ConversationalRetrievalQAChain.fromLLM(
-    model,
-    vectorstore.asRetriever(),
-    {
-      qaTemplate: QA_TEMPLATE,
-      questionGeneratorTemplate: CONDENSE_TEMPLATE,
-      returnSourceDocuments: true, //The number of source documents returned is 4 by default
-    },
-  );
-  return chain;
-};
-
-export const makeChainMongo = (vectorsearch: MongoDBAtlasVectorSearch) => {
-  const model = new ChatOpenAI({
-    temperature: 0, // increase temepreature to get more creative answers
-    modelName: MODEL_NAME, //change this to gpt-4 if you have access
-  });
-
-  const chain = ConversationalRetrievalQAChain.fromLLM(
-    model,
-    vectorsearch.asRetriever(
-    ),
-    {
-      qaTemplate: QA_TEMPLATE,
-      questionGeneratorTemplate: CONDENSE_TEMPLATE,
-      returnSourceDocuments: true, //The number of source documents returned is 4 by default
-    },
-  );
-  return chain;
-};
+}

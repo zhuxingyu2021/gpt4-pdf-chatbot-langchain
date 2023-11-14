@@ -2,6 +2,7 @@ import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { RedisVectorStore } from 'langchain/vectorstores/redis';
+import { Chroma } from 'langchain/vectorstores/chroma';
 import { MongoDBAtlasVectorSearch } from 'langchain/vectorstores/mongodb_atlas';
 import { pinecone } from '@/utils/pinecone-client';
 import { redisCli} from '@/utils/redis-client';
@@ -14,6 +15,8 @@ import { mongoCli } from '@/utils/mongo-client';
 import { pdfS3Service } from '@/utils/pdfStorage/pdfS3';
 import { pdfOSSService } from '@/utils/pdfStorage/pdfOSS';
 import { Document } from 'langchain/document';
+import { chromaCli } from '@/utils/chroma-client';
+import { CHROMA_COLLECTION } from '@/config/chroma';
 
 const PDF_STORAGE = process.env.USE_PDF_STORAGE??''
 
@@ -115,6 +118,16 @@ export const run = async () => {
           })
         }
 
+        break;
+      }
+
+      case "chroma":{
+        if(chromaCli != null){
+          await Chroma.fromDocuments(docs, embeddings, {
+            index: chromaCli,
+            collectionName: CHROMA_COLLECTION,
+          })
+        }
         break;
       }
     }
