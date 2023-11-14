@@ -30,6 +30,8 @@ export const makeChain = (vectorStore: PineconeStore | RedisVectorStore | MongoD
     modelName: MODEL_NAME, //change this to gpt-4 if you have access
   });
 
+  console.log("Do vector search, k: %d", SEARCH_K);
+
   const chain = ConversationalRetrievalQAChain.fromLLM(
     model,
     vectorStore.asRetriever({
