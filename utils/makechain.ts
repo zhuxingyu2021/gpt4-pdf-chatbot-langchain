@@ -22,7 +22,7 @@ Question: {question}
 Helpful answer in markdown:`;
 
 const MODEL_NAME = process.env.MODEL_NAME??'gpt-3.5-turbo'
-const SEARCH_K = process.env.K?Number(process.env.K):4
+const SEARCH_K = process.env.K?Number(process.env.SEARCH_K):4
 
 export const makeChain = (vectorStore: PineconeStore | RedisVectorStore | MongoDBAtlasVectorSearch | Chroma) => {
   const model = new ChatOpenAI({
