@@ -11,82 +11,48 @@ import { MONGO_DBNAME, MONGO_ATLAS_VECTOR_SEARCH_INDEX_NAME, MONGO_COLLECTION_NA
 import { REDIS_INDEX_NAME } from '@/config/redis';
 import { DATABASE_TYPE } from '@/config/common';
 import { mongoCli } from '@/utils/mongo-client';
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
-import { Readable } from 'stream';
+import { pdfS3Service } from '@/utils/pdfStorage/pdfS3';
+import { pdfOSSService } from '@/utils/pdfStorage/pdfOSS';
 import { Document } from 'langchain/document';
 
-const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID??''
-const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY??''
-const AWS_REGION = process.env.AWS_REGION??''
-const AWS_BUCKET = process.env.AWS_BUCKET??''
+const PDF_STORAGE = process.env.USE_PDF_STORAGE??''
 
-const s3Client = new S3Client({
-   region: AWS_REGION ,
-   credentials: {
-    accessKeyId: AWS_ACCESS_KEY_ID,
-    secretAccessKey: AWS_SECRET_ACCESS_KEY
-  }
-});
-
-async function listPdfFiles(bucketName: string): Promise<string[]> {
-  const params = {
-    Bucket: bucketName,
-  };
-
-  let isTruncated = true;
-  let continuationToken: string | undefined;
-  let pdfFiles: string[] = [];
-
-  while (isTruncated) {
-    const { Contents, IsTruncated, NextContinuationToken } = await s3Client.send(
-      new ListObjectsV2Command({ ...params, ContinuationToken: continuationToken })
-    );
-
-    // Filter and collect the PDF files
-    const pdfKeys = Contents?.filter((item) => item.Key?.endsWith('.pdf')).map((item) => item.Key!) || [];
-    pdfFiles = pdfFiles.concat(pdfKeys);
-
-    isTruncated = IsTruncated || false;
-    continuationToken = NextContinuationToken;
-  }
-
-  return pdfFiles;
-}
-
-async function downloadPdfFile(bucketName: string, key: string): Promise<Blob> {
-  const command = new GetObjectCommand({
-    Bucket: bucketName,
-    Key: key,
-  });
-
-  const { Body } = await s3Client.send(command);
-
-  if (Body instanceof Readable) {
-    // Convert the Node stream to a Blob
-    return new Promise((resolve, reject) => {
-      const chunks: Uint8Array[] = [];
-      Body.on("data", (chunk) => chunks.push(chunk));
-      Body.on("end", () => {
-        const blob = new Blob(chunks, { type: 'application/pdf' });
-        resolve(blob);
-      });
-      Body.on("error", reject);
-    });
-  } else {
-    // Handle non-stream body types here, if necessary
-    throw new Error("Expected a stream for the S3 object body.");
-  }
+if(PDF_STORAGE != 'oss' && PDF_STORAGE != 's3'){
+  throw "Invalid pdf storage type, s3 or oss";
 }
 
 export const run = async () => {
   try {
-    const s3Keys = await listPdfFiles(AWS_BUCKET);
-    const s3Objs = await Promise.all(s3Keys.map(key => downloadPdfFile(AWS_BUCKET, key)));
-    const rawDocsPerKey = await Promise.all(s3Objs.map(obj => new PDFLoader(obj).load()));
+    let pdfKeys:string[] = [];
+    let pdfObjs:Blob[] = [];
+
+    if (typeof PDF_STORAGE === 'undefined') {
+      throw new Error("PDF_STORAGE environment variable is undefined");
+    }
+
+    if(PDF_STORAGE == 'oss'){
+      const bucketName = process.env.OSS_BUCKET;
+      if(bucketName === undefined){
+        throw "Bucketname undefined";
+      }
+      const pdfStore = new pdfOSSService(bucketName);
+      pdfKeys = await pdfStore.listPdfFiles();
+      pdfObjs = await Promise.all(pdfKeys.map(key => pdfStore.downloadPdfFile(key)));
+    }else if(PDF_STORAGE == 's3'){
+      const bucketName = process.env.AWS_BUCKET;
+      if(bucketName === undefined){
+        throw "Bucketname undefined";
+      }
+      const pdfStore = new pdfS3Service(bucketName);
+      pdfKeys = await pdfStore.listPdfFiles();
+      pdfObjs = await Promise.all(pdfKeys.map(key => pdfStore.downloadPdfFile(key)));
+    }
+
+    const rawDocsPerKey = await Promise.all(pdfObjs.map(obj => new PDFLoader(obj).load()));
     
     let rawDocs: Document<Record<string, any>>[] = []
-    for (let index = 0; index < s3Keys.length; index++) {
-      const key = s3Keys[index];
+    for (let index = 0; index < pdfKeys.length; index++) {
+      const key = pdfKeys[index];
       const doc = rawDocsPerKey[index].map(doc => {
           let metadata2 = doc.metadata;
           metadata2["source"] = key;
